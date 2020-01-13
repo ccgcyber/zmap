@@ -156,6 +156,11 @@ iterator_t *send_init(void)
 		    "using bandwidth %lu bits/s for %zu byte probe, rate set to %d pkt/s",
 		    zconf.bandwidth, pkt_len / 8, zconf.rate);
 	}
+	// convert default placeholder to default value
+	if (zconf.rate == -1) {
+		// default 10K pps
+		zconf.rate = 10000;
+	}
 	// log rate, if explicitly specified
 	if (zconf.rate < 0) {
 		log_fatal("send", "rate impossibly slow");
@@ -366,9 +371,10 @@ int send_run(sock_t st, shard_t *s)
 			uint32_t src_ip = get_src_ip(current_ip, i);
 			uint32_t validation[VALIDATE_BYTES / sizeof(uint32_t)];
 			validate_gen(src_ip, current_ip, (uint8_t *)validation);
+			uint8_t ttl = zconf.probe_ttl;
 			size_t length = zconf.probe_module->packet_length;
 			zconf.probe_module->make_packet(buf, &length, src_ip,
-							current_ip, validation,
+							current_ip, ttl, validation,
 							i, probe_data);
 			if (length > MAX_PACKET_SIZE) {
 				log_fatal(
